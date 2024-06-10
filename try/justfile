@@ -1,0 +1,6 @@
+
+run:
+    docker run \
+        -p 4366:4317 \
+        -v $(pwd)/otel-collector-config.yaml:/etc/otel/config.yaml \
+        otel/opentelemetry-collector-contrib:latest

@@ -36,6 +36,36 @@ tracer = trace.get_tracer("diceroller.tracer")
 app = FastAPI()
 FastAPIInstrumentor.instrument_app(app)
 
+
+# =========================================================================
+from opentelemetry import metrics
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import (
+    ConsoleMetricExporter,
+    PeriodicExportingMetricReader,
+)
+
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
+    OTLPMetricExporter,
+)
+
+# exporter = OTLPMetricExporter(endpoint="http://host.docker.internal:4366",insecure=True)
+exporter = OTLPMetricExporter(insecure=True)
+# metric_reader = PeriodicExportingMetricReader(ConsoleMetricExporter())
+metric_reader = PeriodicExportingMetricReader(exporter)
+provider = MeterProvider(metric_readers=[metric_reader])
+metrics.set_meter_provider(provider)
+meter = metrics.get_meter("my.meter.name")
+
+
+# ==========================================================================
+from opentelemetry.metrics import get_meter_provider
+
+meter = get_meter_provider().get_meter("my.meter.name", "0.0.1")
+counter_work = meter.create_counter(
+    "counter.work", unit="1", description="=============== Work Counter ==================="
+)
+
 @app.get("/")
 def read_root():
     # Create a custom span
@@ -60,10 +90,23 @@ def hello_world():
     # sleep(2)
     return "hello world"
 
+def do_work(msg):
+    # count the work being doing
+    counter_work.add(1, {"work.message": msg})
+    logger.info("doing some work...")
+
+@app.get("/work")
+async def work():
+    random_work = randint(1, 20)
+    counter_work.add(random_work, {"work.message": "directly inside ping"})
+    return "work"
+
 
 @app.get("/ping")
 async def health_check():
+    counter_work.add(1, {"work.message": "directly inside ping"})
     hello_world()
+    do_work("metric related calculation")
     return "pong"
 
 
