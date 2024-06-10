@@ -1,0 +1,23 @@
+services:
+  fastapi_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    # volumes:
+      # - ./movie-service/:/app/
+    ports:
+      - 5002:5001
+
+    environment:
+      - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=fastapi-docker-sample-new-1
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_BSP_EXPORT_TIMEOUT=3000
+      - OTEL_BLRP_EXPORT_TIMEOUT=3000
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+# https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/
